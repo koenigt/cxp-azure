@@ -2,8 +2,7 @@
 This project is a sample project to set up a reference like https://d2lxv3e7d7f0dt.cloudfront.net/azure/index.htmlusing terraform
 
 
-## Assignment 54: Build a reference network on Azure with Terraform using recommended naming conventions for Azure resources
-(all Teams)
+## Assignment 54: Build a reference network on Azure with Terraform using recommended naming conventions for Azure resources (all Teams)
 * Create 1 Resource Group per team, assign all further resources to this resource group
 * Create 1 VNet 
 * Create 5 Subnets (bastion, application gateway, web, app, data)
@@ -12,7 +11,7 @@ This project is a sample project to set up a reference like https://d2lxv3e7d7f0
 * Instantiate the Bastion Service and attach it to the bastion subnet
 * Add 1 VM (Ubuntu, private IP only) to your web subnet and make sure you can access it using the Bastion Service
 
-##Assignment 55: Add managed groups of VMs to your reference network with Terraform (all Teams)
+## Assignment 55: Add managed groups of VMs to your reference network with Terraform (all Teams)
 * Create 1 DNS zone for DNS records pointing to resources in your network
 (naming convention for DNS domain is ${​​​teamName}​​​​​​​​​​.azure.msgoat.eu) and link this DNS zone to the DNS zone azure.msgoat.eu.
 * Create 1 Virtual Machine Scale Set with 3 VMs representing web servers based on NGinX
@@ -20,8 +19,7 @@ This project is a sample project to set up a reference like https://d2lxv3e7d7f0
 * Create 1 DNS A Record to the DNS zone pointing to the Application Gateway in front of the web servers (web.${​​​​​​​​​​​teamName}​​​​​​​​​​​​​​​​​​.azure.msgoat.eu)
 * Make sure you can access your web servers through the Application Gateway using the DNS name
 
-## Assignment 56 (optional): Add support of HTTPS traffic terminating SSL/TLS at the Application Gateway
-(all Teams)
+## Assignment 56 (optional): Add support of HTTPS traffic terminating SSL/TLS at the Application Gateway (all Teams)
 * Create 1 Key Vault
 * Create 1 Key Vault SSL/TLS certificate for DNS names
 (${​​​​​​​​​​​​​​​​​​teamName}​​​​​​​​​​​​​​​​​​.azure.msgoat.eu, *.${​​​​​​​​​​​​​​​​​​teamName}​​​​​​​​​​​​​​​​​​.azure.msgoat.eu)
