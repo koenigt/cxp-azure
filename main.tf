@@ -8,7 +8,6 @@ terraform {
 }
 
 provider "azurerm" {
-  # Configuration options
   features {}
 }
 
@@ -23,12 +22,34 @@ resource "azurerm_network_security_group" "nsg-westeu-cn" {
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
 }
 
+############################
+# PUBLIC IPs
+############################
+
 resource "azurerm_public_ip" "pip-westeu-cn" {
   name                = "pip-westeu-cn"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
 }
+
+resource "azurerm_public_ip" "pip-westeu-cn-bastion" {
+  name                = "pip-westeu-cn-bastion"
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  location            = var.location
+  allocation_method   = "Static"
+}
+
+resource "azurerm_public_ip" "pip-westeu-cn-nat" {
+  name                = "pip-westeu-cn-nat"
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  location            = var.location
+  allocation_method   = "Static"
+}
+
+############################
+# NAT GATEWAY
+############################
 
 resource "azurerm_nat_gateway" "ngw-westeu-cn" {
   name                    = "ngw-westeu-cn"
@@ -38,8 +59,12 @@ resource "azurerm_nat_gateway" "ngw-westeu-cn" {
 
 resource "azurerm_nat_gateway_public_ip_association" "ngwipa-westeu-cn" {
   nat_gateway_id       = azurerm_nat_gateway.ngw-westeu-cn.id
-  public_ip_address_id = azurerm_public_ip.pip-westeu-cn.id
+  public_ip_address_id = azurerm_public_ip.pip-westeu-cn-nat.id
 }
+
+############################
+# BASTION SERVICE/HOST
+############################
 
 resource "azurerm_bastion_host" "bastion-westeu-cn" {
   name                = "bastion-westeu-cn"
@@ -49,7 +74,7 @@ resource "azurerm_bastion_host" "bastion-westeu-cn" {
   ip_configuration {
     name                 = "configuration"
     subnet_id            = azurerm_subnet.snet-westeu-cn-bastion.id
-    public_ip_address_id = azurerm_public_ip.pip-westeu-cn.id
+    public_ip_address_id = azurerm_public_ip.pip-westeu-cn-bastion.id
   }
 }
 
