@@ -31,6 +31,7 @@ resource "azurerm_public_ip" "pip-westeu-cn" {
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 resource "azurerm_public_ip" "pip-westeu-cn-bastion" {
@@ -38,6 +39,7 @@ resource "azurerm_public_ip" "pip-westeu-cn-bastion" {
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 resource "azurerm_public_ip" "pip-westeu-cn-nat" {
@@ -45,6 +47,7 @@ resource "azurerm_public_ip" "pip-westeu-cn-nat" {
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 ############################
