@@ -1,3 +1,3 @@
 location = "West Europe"
-location_code = "westeu"
-team_name = "cn"
+location_code = "eu-west"
+team_name = "chucknorris"
