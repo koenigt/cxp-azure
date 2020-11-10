@@ -12,12 +12,12 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg-westeu-cn" {
-  name     = "rg-westeu-cn"
+  name     = "rg-${var.location_code}-${var.team_name}"
   location = var.location
 }
 
 resource "azurerm_network_security_group" "nsg-westeu-cn" {
-  name                = "nsg-westeu-cn"
+  name                = "nsg-${var.location_code}-${var.team_name}"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
 }
@@ -27,7 +27,7 @@ resource "azurerm_network_security_group" "nsg-westeu-cn" {
 ############################
 
 resource "azurerm_public_ip" "pip-westeu-cn" {
-  name                = "pip-westeu-cn"
+  name                = "pip-${var.location_code}-${var.team_name}"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
@@ -35,7 +35,7 @@ resource "azurerm_public_ip" "pip-westeu-cn" {
 }
 
 resource "azurerm_public_ip" "pip-westeu-cn-bastion" {
-  name                = "pip-westeu-cn-bastion"
+  name                = "pip-${var.location_code}-${var.team_name}-bastion"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
@@ -43,7 +43,7 @@ resource "azurerm_public_ip" "pip-westeu-cn-bastion" {
 }
 
 resource "azurerm_public_ip" "pip-westeu-cn-nat" {
-  name                = "pip-westeu-cn-nat"
+  name                = "pip-${var.location_code}-${var.team_name}-nat"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   allocation_method   = "Static"
@@ -55,7 +55,7 @@ resource "azurerm_public_ip" "pip-westeu-cn-nat" {
 ############################
 
 resource "azurerm_nat_gateway" "ngw-westeu-cn" {
-  name                    = "ngw-westeu-cn"
+  name                    = "ngw-${var.location_code}-${var.team_name}"
   location                = var.location
   resource_group_name     = azurerm_resource_group.rg-westeu-cn.name
 }
@@ -70,7 +70,7 @@ resource "azurerm_nat_gateway_public_ip_association" "ngwipa-westeu-cn" {
 ############################
 
 resource "azurerm_bastion_host" "bastion-westeu-cn" {
-  name                = "bastion-westeu-cn"
+  name                = "bastion-${var.location_code}-${var.team_name}"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
 
@@ -79,6 +79,18 @@ resource "azurerm_bastion_host" "bastion-westeu-cn" {
     subnet_id            = azurerm_subnet.snet-westeu-cn-bastion.id
     public_ip_address_id = azurerm_public_ip.pip-westeu-cn-bastion.id
   }
+}
+
+############################
+# VIRTUAL NETWORK
+############################
+
+resource "azurerm_virtual_network" "vnet-westeu-cn" {
+  name                = "vnet-${var.location_code}-${var.team_name}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  address_space       = ["10.0.0.0/16"]
+  dns_servers         = ["10.0.0.4", "10.0.0.5"]
 }
 
 ############################
@@ -93,28 +105,28 @@ resource "azurerm_subnet" "snet-westeu-cn-bastion" {
 }
 
 resource "azurerm_subnet" "snet-westeu-cn-agw" {
-  name                 = "snet-westeu-cn-agw"
+  name                 = "snet-${var.location_code}-${var.team_name}-agw"
   resource_group_name  = azurerm_resource_group.rg-westeu-cn.name
   virtual_network_name = azurerm_virtual_network.vnet-westeu-cn.name
   address_prefixes = ["10.0.2.0/24"]
 }
 
 resource "azurerm_subnet" "snet-westeu-cn-web" {
-  name                 = "snet-westeu-cn-web"
+  name                 = "snet-${var.location_code}-${var.team_name}-web"
   resource_group_name  = azurerm_resource_group.rg-westeu-cn.name
   virtual_network_name = azurerm_virtual_network.vnet-westeu-cn.name
   address_prefixes = ["10.0.3.0/24"]
 }
 
 resource "azurerm_subnet" "snet-westeu-cn-app" {
-  name                 = "snet-westeu-cn-app"
+  name                 = "snet-${var.location_code}-${var.team_name}-app"
   resource_group_name  = azurerm_resource_group.rg-westeu-cn.name
   virtual_network_name = azurerm_virtual_network.vnet-westeu-cn.name
   address_prefixes = ["10.0.4.0/24"]
 }
 
 resource "azurerm_subnet" "snet-westeu-cn-data" {
-  name                 = "snet-westeu-cn-data"
+  name                 = "snet-${var.location_code}-${var.team_name}-data"
   resource_group_name  = azurerm_resource_group.rg-westeu-cn.name
   virtual_network_name = azurerm_virtual_network.vnet-westeu-cn.name
   address_prefixes = ["10.0.5.0/24"]
@@ -158,21 +170,12 @@ resource "azurerm_subnet_nat_gateway_association" "ngwa-westeu-cn-data" {
   nat_gateway_id = azurerm_nat_gateway.ngw-westeu-cn.id
 }
 
-resource "azurerm_virtual_network" "vnet-westeu-cn" {
-  name                = "vnet-westeu-cn"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
-  address_space       = ["10.0.0.0/16"]
-  dns_servers         = ["10.0.0.4", "10.0.0.5"]
-}
-
-
 ############################
 # LINUX VM
 ############################
 
 resource "azurerm_network_interface" "nic-westeu-cn" {
-  name                = "nic-westeu-cn"
+  name                = "nic-${var.location_code}-${var.team_name}"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
 
@@ -184,11 +187,12 @@ resource "azurerm_network_interface" "nic-westeu-cn" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm-westeu-cn-01" {
-  name                = "vm-westeu-cn-01"
+  name                = "vm-${var.location_code}-${var.team_name}-01"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
   size                = "Standard_F2"
   admin_username      = "adminuser"
+  custom_data         = filebase64("resources/web-cloud-init.sh")
   network_interface_ids = [
     azurerm_network_interface.nic-westeu-cn.id,
   ]
