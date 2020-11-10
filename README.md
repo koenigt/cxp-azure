@@ -1,8 +1,8 @@
 # cxp-terraform
-This project is a sample project to set up a reference like https://d2lxv3e7d7f0dt.cloudfront.net/azure/index.htmlusing terraform
+This project is a sample project to set up a reference like https://d2lxv3e7d7f0dt.cloudfront.net/azure/index.html using terraform
 
 
-## Assignment 54: Build a reference network on Azure with Terraform using recommended naming conventions for Azure resources (all Teams)
+## Assignment 54 (DONE): Build a reference network on Azure with Terraform using recommended naming conventions for Azure resources (all Teams)
 * Create 1 Resource Group per team, assign all further resources to this resource group
 * Create 1 VNet 
 * Create 5 Subnets (bastion, application gateway, web, app, data)
