@@ -20,6 +20,19 @@ resource "azurerm_network_security_group" "nsg-westeu-cn" {
   name                = "nsg-${var.location_code}-${var.team_name}"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  security_rule {
+	name							= "AllowHTTPInBound"
+	direction						= "Inbound"
+	protocol						= "TCP"
+	source_port_range				= "*"
+	source_address_prefix			= "*"
+	source_address_prefixes			= []
+	destination_port_range			= "80"
+	destination_address_prefix		= "*"
+	destination_address_prefixes	= []
+	access							= "Allow"
+	priority						= "110"
+  }
 }
 
 ############################
@@ -182,6 +195,7 @@ resource "azurerm_network_interface" "nic-westeu-cn" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.snet-westeu-cn-web.id
     private_ip_address_allocation = "Dynamic"
+	public_ip_address_id          = azurerm_public_ip.pip-westeu-cn.id
   }
 }
 
@@ -212,4 +226,36 @@ resource "azurerm_linux_virtual_machine" "vm-westeu-cn-01" {
     sku       = "18.04-LTS"
     version   = "latest"
   }
+}
+
+############################
+# DNS ZONE & RECORDS
+############################
+
+data azurerm_dns_zone parent {
+  name = "azure.msgoat.eu"
+}
+
+# create a dedicated DNS zone to manage all DNS records of this solution
+resource azurerm_dns_zone dns-zone-westeu-cn {
+  name = "${var.team_name}.azure.msgoat.eu"
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+}
+
+# add a DNS NS record with the solution nameserver to the parent DNS zone
+resource azurerm_dns_ns_record child {
+  name = var.team_name
+  zone_name = data.azurerm_dns_zone.parent.name
+  resource_group_name = data.azurerm_dns_zone.parent.resource_group_name
+  ttl = 300
+  records = azurerm_dns_zone.dns-zone-westeu-cn.name_servers
+}
+
+# create a DNS A record for all incoming "web.*" requests pointing to the web server (later loadbalancer)
+resource azurerm_dns_a_record web {
+  name = "web"
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  zone_name = azurerm_dns_zone.dns-zone-westeu-cn.name
+  ttl = 300
+  target_resource_id = azurerm_public_ip.pip-westeu-cn.id
 }
