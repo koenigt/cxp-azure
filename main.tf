@@ -11,28 +11,30 @@ provider "azurerm" {
   features {}
 }
 
+############################
+# VIRTUAL NETWORK & RESOURCE GROUP
+############################
+
 resource "azurerm_resource_group" "rg-westeu-cn" {
   name     = "rg-${var.location_code}-${var.team_name}"
   location = var.location
 }
 
+resource "azurerm_virtual_network" "vnet-westeu-cn" {
+  name                = "vnet-${var.location_code}-${var.team_name}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  address_space       = ["10.0.0.0/16"]
+}
+
+############################
+# SECURITY GROUP
+############################
+
 resource "azurerm_network_security_group" "nsg-westeu-cn" {
   name                = "nsg-${var.location_code}-${var.team_name}"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
-  security_rule {
-	name							= "AllowHTTPInBound"
-	direction						= "Inbound"
-	protocol						= "TCP"
-	source_port_range				= "*"
-	source_address_prefix			= "*"
-	source_address_prefixes			= []
-	destination_port_range			= "80"
-	destination_address_prefix		= "*"
-	destination_address_prefixes	= []
-	access							= "Allow"
-	priority						= "110"
-  }
 }
 
 ############################
@@ -92,17 +94,6 @@ resource "azurerm_bastion_host" "bastion-westeu-cn" {
     subnet_id            = azurerm_subnet.snet-westeu-cn-bastion.id
     public_ip_address_id = azurerm_public_ip.pip-westeu-cn-bastion.id
   }
-}
-
-############################
-# VIRTUAL NETWORK
-############################
-
-resource "azurerm_virtual_network" "vnet-westeu-cn" {
-  name                = "vnet-${var.location_code}-${var.team_name}"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
-  address_space       = ["10.0.0.0/16"]
 }
 
 ############################
@@ -183,32 +174,28 @@ resource "azurerm_subnet_nat_gateway_association" "ngwa-westeu-cn-data" {
 }
 
 ############################
-# LINUX VM
+# LINUX VM / SCALE SET
 ############################
 
-resource "azurerm_network_interface" "nic-westeu-cn" {
-  name                = "nic-${var.location_code}-${var.team_name}"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.snet-westeu-cn-web.id
-    private_ip_address_allocation = "Dynamic"
-	public_ip_address_id          = azurerm_public_ip.pip-westeu-cn.id
-  }
-}
-
-resource "azurerm_linux_virtual_machine" "vm-westeu-cn-01" {
-  name                = "vm-${var.location_code}-${var.team_name}-01"
+resource "azurerm_linux_virtual_machine_scale_set" "vmss-westeu-cn" {
+  name                = "vmss-${var.location_code}-${var.team_name}"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   location            = var.location
-  size                = "Standard_F2"
+  sku                 = "Standard_F2"
+  instances           = 3
   admin_username      = "adminuser"
   custom_data         = filebase64("resources/web-cloud-init.sh")
-  network_interface_ids = [
-    azurerm_network_interface.nic-westeu-cn.id,
-  ]
+  network_interface {
+    name	= "nic-${var.location_code}-${var.team_name}"
+	primary	= true
+	
+	ip_configuration {
+		name	= "internal"
+		primary	= true
+		subnet_id = azurerm_subnet.snet-westeu-cn-web.id
+		application_gateway_backend_address_pool_ids = [azurerm_application_gateway.agw.backend_address_pool[0].id]
+	}
+  }
 
   admin_ssh_key {
     username   = "adminuser"
@@ -225,6 +212,23 @@ resource "azurerm_linux_virtual_machine" "vm-westeu-cn-01" {
     offer     = "UbuntuServer"
     sku       = "18.04-LTS"
     version   = "latest"
+  }
+}
+
+resource azurerm_monitor_autoscale_setting "mas-westeu-cn" {
+  name = "mas-${var.location_code}-${var.team_name}-web"
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  location = var.location
+  target_resource_id = azurerm_linux_virtual_machine_scale_set.vmss-westeu-cn.id
+
+  profile {
+    name = "default"
+
+    capacity {
+      default = 3
+      minimum = 3
+      maximum = 6
+    }
   }
 }
 
@@ -251,11 +255,68 @@ resource azurerm_dns_ns_record child {
   records = azurerm_dns_zone.dns-zone-westeu-cn.name_servers
 }
 
-# create a DNS A record for all incoming "web.*" requests pointing to the web server (later loadbalancer)
+# create a DNS A record for all incoming "web.*" requests pointing to the loadbalancer / application gateway
 resource azurerm_dns_a_record web {
   name = "web"
   resource_group_name = azurerm_resource_group.rg-westeu-cn.name
   zone_name = azurerm_dns_zone.dns-zone-westeu-cn.name
   ttl = 300
   target_resource_id = azurerm_public_ip.pip-westeu-cn.id
+}
+
+############################
+# APPLICATION GATEWAY
+############################
+resource "azurerm_application_gateway" "agw" {
+  name                = "agw-${var.location_code}-${var.team_name}"
+  resource_group_name = azurerm_resource_group.rg-westeu-cn.name
+  location            = var.location
+
+  sku {
+    name = "Standard_v2"
+    tier = "Standard_v2"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "gw-ip-cfg-${var.location_code}-${var.team_name}"
+    subnet_id = azurerm_subnet.snet-westeu-cn-agw.id
+  }
+
+  frontend_port {
+    name = "${azurerm_virtual_network.vnet-westeu-cn.name}-feport"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "${azurerm_virtual_network.vnet-westeu-cn.name}-feip"
+    public_ip_address_id = azurerm_public_ip.pip-westeu-cn.id
+  }
+
+  backend_address_pool {
+    name = "${azurerm_virtual_network.vnet-westeu-cn.name}-beap"
+  }
+
+  backend_http_settings {
+    name                  = "${azurerm_virtual_network.vnet-westeu-cn.name}-be-htst"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 60
+  }
+
+  http_listener {
+    name                           = "${azurerm_virtual_network.vnet-westeu-cn.name}-httplstn"
+    frontend_ip_configuration_name = "${azurerm_virtual_network.vnet-westeu-cn.name}-feip"
+    frontend_port_name             = "${azurerm_virtual_network.vnet-westeu-cn.name}-feport"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "${azurerm_virtual_network.vnet-westeu-cn.name}-rqrt"
+    rule_type                  = "Basic"
+    http_listener_name         = "${azurerm_virtual_network.vnet-westeu-cn.name}-httplstn"
+    backend_address_pool_name  = "${azurerm_virtual_network.vnet-westeu-cn.name}-beap"
+    backend_http_settings_name = "${azurerm_virtual_network.vnet-westeu-cn.name}-be-htst"
+  }
 }

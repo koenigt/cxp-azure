@@ -11,7 +11,7 @@ This project is a sample project to set up a reference like https://d2lxv3e7d7f0
 * Instantiate the Bastion Service and attach it to the bastion subnet
 * Add 1 VM (Ubuntu, private IP only) to your web subnet and make sure you can access it using the Bastion Service
 
-## Assignment 55: Add managed groups of VMs to your reference network with Terraform (all Teams)
+## Assignment 55 (DONE): Add managed groups of VMs to your reference network with Terraform (all Teams)
 * Create 1 DNS zone for DNS records pointing to resources in your network
 (naming convention for DNS domain is ${​​​teamName}​​​​​​​​​​.azure.msgoat.eu) and link this DNS zone to the DNS zone azure.msgoat.eu.
 * Create 1 Virtual Machine Scale Set with 3 VMs representing web servers based on NGinX
